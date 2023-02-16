@@ -227,5 +227,36 @@ In contrast, .apply applies a single transformation to a PCollection. It is the 
 
 In summary, .via provides more flexibility and control over the application of multiple transforms to a PCollection, while .apply is used to apply a single transform to a PCollection.
 
+## MapElements
+
+"MapElements" is a transformation in Apache Beam that allows you to apply a function to each element of a PCollection and produce a new PCollection with the results. This can be useful in a variety of data processing scenarios, such as transforming data into a different format, converting data types, or performing data cleaning and normalization.
+
+One of the big advantages of using MapElements is that it allows you to perform these transformations in a parallel and scalable manner, taking advantage of the distributed nature of Apache Beam. This can greatly improve the performance of your data processing pipelines, especially for large data sets. Additionally, using MapElements can make your code more readable and maintainable, as you can encapsulate complex data transformations into a single, reusable function.
+
+## parDo vs mapElements
+
+both ParDo and MapElements allow you to perform custom transformations on the elements of a PCollection, but there are some differences between them that can influence when you should use one or the other.
+
+In general, ParDo is more powerful and flexible, but also more complex to use. With ParDo, you can perform more complex transformations, like splitting a single element into multiple outputs, grouping elements into different PCollections based on some criteria, and more.
+
+MapElements is a simpler operation that can be used for straightforward transformations, like converting elements from one type to another, adding or removing fields, etc. If you need to perform a simple transformation, then MapElements is usually the easier choice.
+
+So, the general rule of thumb is to use ParDo when you need to perform a complex transformation and MapElements when you need to perform a simple one.
+
+Example: 
+
+```java 
+PCollection<String> words = ...;
+PCollection<Integer> wordLengths = words.apply(
+    MapElements.into(TypeDescriptors.integers())
+        .via(word -> word.length()));
+```
+
+In this example, the input PCollection of words is transformed into a PCollection of their length by using the MapElements transform. The MapElements transform takes as input a SimpleFunction that specifies the transformation to apply to each element of the input PCollection. In this case, the transformation is the length() method of the String class. The MapElements transform also requires a type descriptor for the output elements, which is specified using TypeDescriptors.integers().
+
+The MapElements transform can be a more efficient alternative to ParDo when the transformation applied to each element is simple and can be represented using a SimpleFunction. On the other hand, if the transformation applied to each element is more complex or requires access to side inputs, then ParDo is the more appropriate transform to use.
+
+
+
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
