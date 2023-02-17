@@ -274,5 +274,90 @@ The MapElements transform can be a more efficient alternative to ParDo when the 
 7- These steps provide a structure for writing and executing processing functions in Apache Beam, making it easier to create and manage data processing pipelines.
 
 
+
+
+You have a DoFn that needs to keep track of some state across multiple elements in a PCollection. The startBundle method is a convenient place to initialize the state, and the finishBundle method is a convenient place to persist the state for later use.
+
+
+```java 
+public class MyDoFn extends DoFn<InputT, OutputT> {
+  private Map<String, Integer> wordCounts = new HashMap<>();
+
+  @StartBundle
+  public void startBundle(Context c) {
+    // Initialize the state
+    wordCounts = new HashMap<>();
+  }
+
+  @ProcessElement
+  public void processElement(ProcessContext c) {
+    String word = c.element().getWord();
+    int count = wordCounts.getOrDefault(word, 0) + 1;
+    wordCounts.put(word, count);
+    c.output(word, count);
+  }
+
+  @FinishBundle
+  public void finishBundle(Context c) {
+    // Persist the state
+    ...
+  }
+}
+```
+
+
+where we have a PCollection of integers and we want to extract the squares of the numbers in the collection. Here's one way to do it using ParDo without explicitly using the lifecycle methods:
+
+
+
+```java 
+PCollection<Integer> numbers = ...;
+PCollection<Integer> squares = numbers.apply(
+    ParDo.of(new DoFn<Integer, Integer>() {
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            int number = c.element();
+            int square = number * number;
+            c.output(square);
+        }
+    }));
+```
+In this example, we use a ParDo transform to process each element in the numbers PCollection and compute its square. The computation is done in the processElement method.
+
+Now let's see how this example can be improved by using the lifecycle methods:
+
+```java 
+PCollection<Integer> numbers = ...;
+PCollection<Integer> squares = numbers.apply(
+    ParDo.of(new DoFn<Integer, Integer>() {
+        @StartBundle
+        public void startBundle(Context c) {
+            // Code to run before processing the first element in a bundle.
+            // For example, initializing state.
+        }
+
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            int number = c.element();
+            int square = number * number;
+            c.output(square);
+        }
+
+        @FinishBundle
+        public void finishBundle(Context c) {
+            // Code to run after processing the last element in a bundle.
+            // For example, cleaning up state.
+        }
+    }));
+
+```
+
+
+In this example, we added three lifecycle methods: startBundle, processElement, and finishBundle. The startBundle method is called before processing the first element in a bundle, and the finishBundle method is called after processing the last element in a bundle. In this example, we're not actually doing anything with the lifecycle methods, but in real-world use cases, these methods can be used to initialize and clean up state, such as counters, accumulators, or stateful variables that are used within the processElement method.
+
+By using the lifecycle methods, we have more control over the processing of elements in a PCollection. This can be useful for scenarios where we need to track state or perform additional processing before and after processing each element.
+
+
+
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
