@@ -256,6 +256,22 @@ In this example, the input PCollection of words is transformed into a PCollectio
 
 The MapElements transform can be a more efficient alternative to ParDo when the transformation applied to each element is simple and can be represented using a SimpleFunction. On the other hand, if the transformation applied to each element is more complex or requires access to side inputs, then ParDo is the more appropriate transform to use.
 
+## DoFn lifeCycle
+
+
+1- The Apache Beam DoFn lifecycle refers to the sequence of events that occur when executing a DoFn. The lifecycle is defined by the following steps:
+
+2- Initialization: When a DoFn is created, it is initialized with any required resources or configurations. This is usually done in the DoFn's constructor.
+
+3- Preparation: Before processing the first element, the DoFn's startBundle method is called. This method is used to set up any state or resources that are required for processing.
+
+4- Processing: For each input element, the DoFn's processElement method is called. This method performs the actual processing of the element, such as transforming the data, filtering out unwanted data, or aggregating results.
+
+5- Completion: After all elements have been processed, the DoFn's finishBundle method is called. This method is used to perform any final processing or cleanup that is required.
+
+6- Teardown: Finally, the DoFn's resources are released, and the DoFn is destroyed.
+
+7- These steps provide a structure for writing and executing processing functions in Apache Beam, making it easier to create and manage data processing pipelines.
 
 
 references: 
