@@ -360,7 +360,48 @@ By using the lifecycle methods, we have more control over the processing of elem
 
 ## GroupByKey
 
-"GroupByKey is a Beam transform for processing collections of key/value pairs. It’s a parallel reduction operation, analogous to the Shuffle phase of a Map/Shuffle/Reduce-style algorithm. The input to GroupByKey is a collection of key/value pairs that represents a multimap, where the collection contains multiple pairs that have the same key, but different values. Given such a collection, you use GroupByKey to collect all of the values associated with each unique key."
+"GroupByKey is a Beam transform for processing collections of key/value pairs. It’s a parallel reduction operation, analogous to the Shuffle phase of a Map/Shuffle/Reduce-style algorithm. The input to GroupByKey is a collection of key/value pairs that represents a multimap, where the collection contains multiple pairs that have the same key, but different values. Given such a collection, you use GroupByKey to collect all of the values associated with each unique key." -- Beam documentation 
+
+GroupByKey is a Beam transform that groups the elements of a PCollection by their keys. It is similar to the group by clause in SQL. When you apply GroupByKey to a PCollection, it creates a new PCollection where each element is a key-value pair, where the key is the unique key of a group and the value is an iterable of all the values in that group.
+
+Here's an example of how to use GroupByKey in Java:
+
+
+```java 
+PCollection<KV<String, Integer>> input = ...;
+
+PCollection<KV<String, Iterable<Integer>>> grouped = input.apply(GroupByKey.create());
+
+// Do something with the grouped PCollection
+
+```
+
+
+In this example, input is a PCollection of key-value pairs, where the keys are strings and the values are integers. When we apply GroupByKey to input, it groups the elements by key and creates a new PCollection of key-value pairs, where the keys are the unique keys from input and the values are iterables of all the values with that key.
+
+Once you have a PCollection that has been grouped using GroupByKey, you can use it in subsequent transformations, such as ParDo. For example:
+
+
+```java 
+PCollection<KV<String, Iterable<Integer>>> grouped = ...;
+
+PCollection<KV<String, Integer>> sum = grouped.apply(ParDo.of(new DoFn<KV<String, Iterable<Integer>>, KV<String, Integer>>() {
+    @ProcessElement
+    public void processElement(ProcessContext c) {
+        KV<String, Iterable<Integer>> kv = c.element();
+        String key = kv.getKey();
+        Iterable<Integer> values = kv.getValue();
+        int sum = 0;
+        for (Integer value : values) {
+            sum += value;
+        }
+        c.output(KV.of(key, sum));
+    }
+}));
+
+```
+
+In this example, we have a PCollection that has been grouped using GroupByKey. We then apply a ParDo transform to the grouped PCollection. The ParDo takes an element from the input PCollection, which is a key-value pair where the key is a string and the value is an iterable of integers. The ParDo then calculates the sum of the integers and outputs a new key-value pair, where the key is the same string and the value is the sum of the integers.
 
 
 
