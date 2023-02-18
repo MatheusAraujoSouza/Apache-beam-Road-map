@@ -358,6 +358,12 @@ In this example, we added three lifecycle methods: startBundle, processElement, 
 By using the lifecycle methods, we have more control over the processing of elements in a PCollection. This can be useful for scenarios where we need to track state or perform additional processing before and after processing each element.
 
 
+## GroupByKey
+
+"GroupByKey is a Beam transform for processing collections of key/value pairs. It’s a parallel reduction operation, analogous to the Shuffle phase of a Map/Shuffle/Reduce-style algorithm. The input to GroupByKey is a collection of key/value pairs that represents a multimap, where the collection contains multiple pairs that have the same key, but different values. Given such a collection, you use GroupByKey to collect all of the values associated with each unique key."
+
+
+
 
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
