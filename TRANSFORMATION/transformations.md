@@ -404,7 +404,131 @@ PCollection<KV<String, Integer>> sum = grouped.apply(ParDo.of(new DoFn<KV<String
 In this example, we have a PCollection that has been grouped using GroupByKey. We then apply a ParDo transform to the grouped PCollection. The ParDo takes an element from the input PCollection, which is a key-value pair where the key is a string and the value is an iterable of integers. The ParDo then calculates the sum of the integers and outputs a new key-value pair, where the key is the same string and the value is the sum of the integers.
 
 
+## CoGroupByKey
 
 
+"
+  CoGroupByKey performs a relational join of two or more key/value PCollections that have the same key type. Design Your Pipeline shows an example pipeline that uses a join.
+
+  Consider using CoGroupByKey if you have multiple data sets that provide information about related things. For example, let’s say you have two different files with user data: one file has names and email addresses; the other file has names and phone numbers. You can join those two data sets, using the user name as a common key and the other data as the associated values. After the join, you have one data set that contains all of the information (email addresses and phone numbers) associated with each name.
+" -- documentation Guide apache-beam
+
+
+The CoGroupByKey transform in Apache Beam is used to combine two or more PCollections of key-value pairs based on their keys. It is similar to the GroupByKey transform, but it works on multiple collections simultaneously.
+
+CoGroupByKey takes multiple input PCollections and groups the elements by their keys. The resulting output PCollection is a collection of key-value pairs, where the key is the original key and the value is a CoGbkResult object. The CoGbkResult object contains an iterable of values for each input PCollection.
+
+
+```java
+PCollection<KV<String, Integer>> pc1 = ...;
+PCollection<KV<String, String>> pc2 = ...;
+
+PCollection<KV<String, CoGbkResult>> result = KeyedPCollectionTuple
+    .of(pc1, someTag)
+    .and(pc2, someOtherTag)
+    .apply(CoGroupByKey.create());
+
+PCollection<KV<String, Tuple2<Iterable<Integer>, Iterable<String>>>> finalResult = result
+    .apply(ParDo.of(new DoFn<KV<String, CoGbkResult>, KV<String, Tuple2<Iterable<Integer>, Iterable<String>>>>() {
+      @ProcessElement
+      public void processElement(ProcessContext c) {
+        KV<String, CoGbkResult> e = c.element();
+        Iterable<Integer> pc1Values = e.getValue().getAll(someTag);
+        Iterable<String> pc2Values = e.getValue().getAll(someOtherTag);
+        c.output(KV.of(e.getKey(), Tuple2.of(pc1Values, pc2Values)));
+      }
+    }));
+```
+
+In this example, we have two input PCollections, pc1 and pc2, that we want to co-group based on their common key. We use KeyedPCollectionTuple to tag each input PCollection with a unique tag. Then, we pass the tagged PCollections to CoGroupByKey to co-group them based on their common key. Finally, we use ParDo to process the resulting CoGbkResult object, extracting the values from each input PCollection using the respective tags. We then output a KV pair with the original key and a tuple containing the iterable of values from each input PCollection.
+
+Another example:
+
+```java
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.values.KV;
+import org.apache.beam.sdk.values.PCollection;
+import org.apache.beam.sdk.values.PCollectionView;
+import org.apache.beam.sdk.values.TupleTag;
+import org.apache.beam.sdk.transforms.GroupByKey;
+import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.View;
+import org.apache.beam.sdk.transforms.windowing.FixedWindows;
+import org.apache.beam.sdk.transforms.windowing.Window;
+import org.apache.beam.sdk.transforms.windowing.WindowFn;
+import org.joda.time.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class BundleDataExample {
+
+  public static void main(String[] args) {
+    List<Integer> input = new ArrayList<>();
+    for (int i = 1; i <= 10; i++) {
+      input.add(i);
+    }
+
+    Pipeline pipeline = Pipeline.create();
+    PCollection<Integer> inputCollection = pipeline.apply(Create.of(input));
+
+    int bundleSize = 3;
+    PCollection<KV<Integer, List<Integer>>> bundledData = inputCollection
+        .apply(Window.into(FixedWindows.of(Duration.standardMinutes(1))))
+        .apply(ParDo.of(new BundleDataFn(bundleSize)))
+        .apply(GroupByKey.create())
+        .apply(ParDo.of(new MergeBundlesFn()));
+
+    bundledData.apply(ParDo.of(new OutputBundleFn()));
+    
+    pipeline.run();
+  }
+
+  static class BundleDataFn extends DoFn<Integer, KV<Integer, Integer>> {
+    private int bundleSize;
+    private int bundleId = 0;
+
+    public BundleDataFn(int bundleSize) {
+      this.bundleSize = bundleSize;
+    }
+
+    @ProcessElement
+    public void processElement(ProcessContext c) {
+      int value = c.element();
+      KV<Integer, Integer> bundleEntry = KV.of(bundleId, value);
+      c.output(bundleEntry);
+
+      if ((bundleId + 1) % bundleSize == 0) {
+        bundleId++;
+      }
+    }
+  }
+
+  static class MergeBundlesFn extends DoFn<KV<Integer, Iterable<Integer>>, KV<Integer, List<Integer>>> {
+    @ProcessElement
+    public void processElement(ProcessContext c) {
+      int bundleId = c.element().getKey();
+      List<Integer> bundleValues = new ArrayList<>();
+      for (Integer value : c.element().getValue()) {
+        bundleValues.add(value);
+      }
+      KV<Integer, List<Integer>> bundle = KV.of(bundleId, bundleValues);
+      c.output(bundle);
+    }
+  }
+
+  static class OutputBundleFn extends DoFn<KV<Integer, List<Integer>>, Void> {
+    @ProcessElement
+    public void processElement(ProcessContext c) {
+      KV<Integer, List<Integer>> bundle = c.element();
+      System.out.println("Bundle " + bundle.getKey() + ": " + bundle.getValue());
+    }
+  }
+}
+```
+
+In this example, we create a list of 10 integers and define a bundle size of 3. We apply a Window transform with a FixedWindows windowing function to split the input into windows of 1 minute duration, and then apply a ParDo transform that uses a BundleDataFn to assign each element to a bundle. The BundleDataFn creates a key-value pair with the bundle ID as the key and the element as the value. When the number of elements assigned to a bundle reaches the bundle size, the BundleDataFn increments the bundle ID.
+
+The resulting key-value pairs are then grouped by key using a GroupByKey transform, and the values in each group
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
