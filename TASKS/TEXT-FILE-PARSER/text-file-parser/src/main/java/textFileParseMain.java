@@ -10,23 +10,29 @@ import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.TypeDescriptors;
-
 import java.util.Arrays;
 
 public class textFileParseMain {
 
   public static void main(String[] args) {
-    Pipeline pipeline = Pipeline.create();
+    Pipeline pipeline = Pipeline.create(); // Creates a new pipeline.
 
+    // Reads text files from a directory specified by a filepattern.
     PCollection<KV<String, Long>> wordCounts = pipeline
         .apply(TextIO.read().from("C:\\Source\\Git\\myTraining\\Apache-beam-Road-map\\TASKS\\TEXT-FILE-PARSER\\resources\\iron\\*"))
+
+    // Splits each line of text into individual words and emits them as a PCollection of strings.
         .apply("ExtractWords", FlatMapElements.into(TypeDescriptors.strings())
             .via((String line) -> Arrays.asList(line.split("\\W+"))))
+
+    // Maps each word to a key-value pair where the key is the word and the value is 1L.
         .apply("ToKV", MapElements.into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.longs()))
             .via((String word) -> KV.of(word, 1L)))
+
+    // Counts the occurrences of each word and produces a PCollection of key-value pairs where the key is a unique word and the value is the number of times it appears.
         .apply("CountWords", Count.perKey());
-    
-    
+
+    // Formats the output of the word count as a string and prints it to the console.
     wordCounts.apply(MapElements.into(TypeDescriptors.strings())
             .via((KV<String, Long> wordCount) -> {
               String word = wordCount.getKey();
@@ -39,17 +45,19 @@ public class textFileParseMain {
                 System.out.println(c.element());
               }
             }));
-    
-    
-    PCollection<KV<String, Iterable<Long>>> groupedCounts = wordCounts.apply(GroupByKey.create());
 
+    // Groups the word count results by filename and formats them as a CSV string.
+    PCollection<KV<String, Iterable<Long>>> groupedCounts = wordCounts.apply(GroupByKey.create());
     groupedCounts.apply("FormatAsCsv", FlatMapElements.into(TypeDescriptors.strings())
             .via((SerializableFunction<KV<String, Iterable<Long>>, Iterable<String>>) kv -> {
               String filename = kv.getKey();
               Long count = kv.getValue().iterator().next();
               return Arrays.asList(filename + "," + count);
             }))
+
+    // Writes the CSV-formatted word count results to a file in the 'gold' folder.
             .apply(TextIO.write().to("C:\\Source\\Git\\myTraining\\Apache-beam-Road-map\\TASKS\\TEXT-FILE-PARSER\\resources\\gold\\").withSuffix(".csv"));
-    pipeline.run();
+
+    pipeline.run(); // Runs the pipeline.
   }
 }
