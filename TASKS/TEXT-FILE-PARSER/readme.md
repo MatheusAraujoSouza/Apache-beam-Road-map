@@ -72,6 +72,19 @@ PCollection<KV<Integer, Iterable<String>>> grouped = kvPairs.apply(GroupByKey.cr
 
 The resulting PCollection grouped will contain one key-value pair for each unique key in the input collection. Each key-value pair in grouped will have the same key as one of the input pairs, and its value will be an Iterable containing all the values that were associated with that key in the input collection.
 
+example in pcollection:
+ ```java
+ [("apple", 1), ("banana", 2), ("apple", 3), ("cherry", 4), ("banana", 5)]
+ ```
+If we apply the GroupByKey transformation to this PCollection, it will group the values by key and create a new PCollection of key-value pairs, where each key is a unique string and each value is an iterable of integers:
+```java
+[ ("apple", [1, 3]),
+ ("banana", [2, 5]),
+ ("cherry", [4])
+] 
+```
+
+
 
 ### Count and GroupByKey
 
