@@ -17,25 +17,9 @@
     <artifactId>beam-runners-direct-java</artifactId>
     <version>2.19.0</version>
 </dependency>
-
-<dependency>
-  <groupId>com.google.guava</groupId>
-  <artifactId>guava</artifactId>
-  <version>28.2-jre</version>
-</dependency>
-
-<dependency>
-    <groupId>org.slf4j</groupId>
-    <artifactId>slf4j-log4j12</artifactId>
-    <version>1.7.30</version>
-</dependency>
-
-
   
   
   </dependencies>
-  
-  
 
 
 </project>
