@@ -530,5 +530,54 @@ public class BundleDataExample {
 In this example, we create a list of 10 integers and define a bundle size of 3. We apply a Window transform with a FixedWindows windowing function to split the input into windows of 1 minute duration, and then apply a ParDo transform that uses a BundleDataFn to assign each element to a bundle. The BundleDataFn creates a key-value pair with the bundle ID as the key and the element as the value. When the number of elements assigned to a bundle reaches the bundle size, the BundleDataFn increments the bundle ID.
 
 The resulting key-value pairs are then grouped by key using a GroupByKey transform, and the values in each group
+
+
+## Combine
+The Combine transformation in Apache Beam is used to combine elements in a PCollection using a specified combining function. The combining function takes two input values and produces a single output value. The output value can be of a different type than the input values.
+
+Here is an example of how to use the Combine transformation to compute the sum of a PCollection of integers:
+
+```java
+PCollection<Integer> numbers = ... // a PCollection of integers
+PCollection<Integer> sum = numbers.apply(Combine.globally(new SumIntegersFn()));
+```
+In this example, we use the SumIntegersFn class to define the combining function:
+```java
+public class SumIntegersFn extends CombineFn<Integer, Integer, Integer> {
+  public Integer createAccumulator() { return 0; }
+  public Integer addInput(Integer sum, Integer input) { return sum + input; }
+  public Integer mergeAccumulators(Iterable<Integer> accumulators) {
+    int merged = 0;
+    for (Integer accumulator : accumulators) {
+      merged += accumulator;
+    }
+    return merged;
+  }
+  public Integer extractOutput(Integer sum) { return sum; }
+}
+```
+In this example, the createAccumulator method initializes the accumulator to 0, the addInput method takes the current sum and adds the next element to it, and the mergeAccumulators method merges two accumulators into one. Finally, the extractOutput method returns the final sum.
+The header CombineFn<Integer, Integer, Integer> represents the input, output and accumulator types for a CombineFn in Apache Beam.
+
+The first type parameter Integer represents the type of elements being combined. In this case, the elements are of type Integer.
+The second type parameter Integer represents the type of the accumulator. The accumulator is a mutable container that is used to accumulate the intermediate results during the combine operation. In this case, the accumulator is also of type Integer.
+The third type parameter Integer represents the type of the output that will be produced after all the elements have been combined. In this case, the output is also of type Integer.
+
+So, when the Combine transformation is applied to the numbers PCollection, it combines all the integers in the PCollection using the SumIntegersFn function to produce a single output value.
+
+
+the CombineFn interface is a standard interface in the Apache Beam library. It defines the methods that need to be implemented for a function that can combine elements of a certain type.
+
+
+The SumIntsFn class has three methods that need to be implemented as part of the CombineFn interface:
+<br>
+<br>
+1- createAccumulator() - creates a new mutable accumulator for a new key.<br>
+2- addInput(accumulator, input) - adds an input value to an accumulator.<br>
+3-mergeAccumulators(accumulators) - merges accumulators from multiple threads or machines.<br><br>
+These methods are used by the Beam framework to combine elements in a distributed and parallelized manner. When the combine() method is called, Beam will create a new instance of SumIntsFn, call createAccumulator() to create a new mutable accumulator for the key, and then call addInput() for each input element to add it to the accumulator. Finally, it will call mergeAccumulators() to merge the accumulators from different workers and return the final combined result.
+
+In this example, we use the SumIntegersFn class to define the combining function:
+
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
