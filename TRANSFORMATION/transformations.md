@@ -579,5 +579,38 @@ These methods are used by the Beam framework to combine elements in a distribute
 
 In this example, we use the SumIntegersFn class to define the combining function:
 
+
+
+## Flatten 
+
+In Java, Apache Beam uses the Flatten transform to combine multiple PCollections of the same type into a single PCollection. The Flatten transform takes a PCollectionList as input and outputs a single PCollection that contains all the elements from all the input PCollections.
+
+
+```java
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.transforms.Flatten;
+import org.apache.beam.sdk.values.PCollection;
+import org.apache.beam.sdk.values.PCollectionList;
+
+Pipeline pipeline = Pipeline.create();
+
+PCollection<String> pcollection1 = pipeline.apply(TextIO.read().from("source1.txt"));
+PCollection<String> pcollection2 = pipeline.apply(TextIO.read().from("source2.txt"));
+
+PCollectionList<String> pcollectionList = PCollectionList.of(pcollection1).and(pcollection2);
+PCollection<String> mergedPCollection = pcollectionList.apply(Flatten.<String>pCollections());
+```
+
+In this example, we first create two PCollections pcollection1 and pcollection2 using TextIO.read().from(). We then create a PCollectionList using PCollectionList.of() and and() methods, and add the input PCollections to the list.
+
+We then apply the Flatten transform to the PCollectionList using the apply() method, specifying the data type of the PCollections using <String>.
+
+The output of the Flatten transform is a single PCollection called mergedPCollection that contains all the elements from pcollection1 and pcollection2.
+
+It's important to note that the order of elements in the output PCollection is not guaranteed. If you need to preserve the order of elements, you should use a different transform like GroupByKey or Combine.PerKey(). Also, note that the PCollectionList can contain any number of PCollections, and they don't have to be of the same size.
+
+Here's an example of using Flatten in Java:
+
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
