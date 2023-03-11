@@ -610,7 +610,17 @@ The output of the Flatten transform is a single PCollection called mergedPCollec
 
 It's important to note that the order of elements in the output PCollection is not guaranteed. If you need to preserve the order of elements, you should use a different transform like GroupByKey or Combine.PerKey(). Also, note that the PCollectionList can contain any number of PCollections, and they don't have to be of the same size.
 
-Here's an example of using Flatten in Java:
+
+## Partition
+
+In Apache Beam, a partition is a logical subset of a larger data set that can be processed independently by a worker. Partitions are used to parallelize processing of data, which can help to improve the overall performance and efficiency of a pipeline.
+
+The concept of partitioning is particularly important in Apache Beam because it is designed to work with large-scale data processing pipelines that run on distributed computing systems, such as Apache Spark or Google Cloud Dataflow. By partitioning data into smaller subsets, each worker can process a smaller amount of data, which can result in faster processing times.
+
+In Apache Beam, partitioning can be performed in a variety of ways, depending on the specific needs of the pipeline. For example, you can partition data based on a specific field value, such as partitioning a customer database by state or ZIP code. Alternatively, you can partition data randomly, or based on some other criteria that makes sense for your particular use case.
+
+Once data has been partitioned, it can be processed in parallel by multiple workers, which can help to significantly speed up the overall processing time. Apache Beam provides a variety of built-in transforms that can be used to partition data, such as the Partition transform, which allows you to partition data based on a user-defined function.
+
 
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
