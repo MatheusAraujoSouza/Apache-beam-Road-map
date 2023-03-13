@@ -622,5 +622,15 @@ In Apache Beam, partitioning can be performed in a variety of ways, depending on
 Once data has been partitioned, it can be processed in parallel by multiple workers, which can help to significantly speed up the overall processing time. Apache Beam provides a variety of built-in transforms that can be used to partition data, such as the Partition transform, which allows you to partition data based on a user-defined function.
 
 
+## Requirements for writing user code for Beam transforms
+When you write user code for a Beam transform, you need to keep in mind that your code will be executed in a distributed manner across multiple machines.
+
+Specifically, your function object must be serializable, meaning that it can be converted into a form that can be sent over the network. This is necessary because your code will be executed on multiple machines, and the function object needs to be sent to each machine.
+
+In addition, your function object must be thread-compatible, meaning that it can be executed in a multi-threaded environment. However, the Beam SDKs are not thread-safe, so you need to be careful when writing multi-threaded code to ensure that it is safe to execute in a distributed environment.
+
+Finally, it's recommended that you make your function object idempotent, which means that if the function is executed multiple times with the same input, it will produce the same output each time. This is important because the function may be retried or run multiple times on different machines, and you want to ensure that the output is consistent regardless of how many times the function is executed.
+
+
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
