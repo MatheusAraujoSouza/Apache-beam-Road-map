@@ -632,5 +632,86 @@ In addition, your function object must be thread-compatible, meaning that it can
 Finally, it's recommended that you make your function object idempotent, which means that if the function is executed multiple times with the same input, it will produce the same output each time. This is important because the function may be retried or run multiple times on different machines, and you want to ensure that the output is consistent regardless of how many times the function is executed.
 
 
+## Thread-compatibility
+
+In Apache Beam, the functions that are used for transformations and analysis are executed on multiple worker nodes in a distributed manner. This means that the same function instance may be accessed by multiple threads on different worker nodes simultaneously. Therefore, it is important to ensure that the function is thread-compatible, meaning that it can be safely accessed by multiple threads without causing race conditions or other issues.
+
+When a Beam pipeline is executed, it automatically manages the distribution of work across multiple worker nodes. Each worker node may have multiple threads running concurrently to process data. When a function is executed on a worker node, it is typically executed on a single thread, unless the function itself spawns additional threads.
+
+However, the Beam SDKs themselves are not thread-safe, meaning that they are not designed to be used by multiple threads simultaneously. Therefore, if you create your own threads in your user code, you must ensure that any interactions with the Beam SDK are properly synchronized to avoid thread-safety issues.
+
+```java
+import org.apache.beam.sdk.transforms.DoFn;
+
+public class NotThreadSafeFn extends DoFn<Integer, Void> {
+
+  // Shared counter variable
+  private int count;
+
+  @ProcessElement
+  public void processElement(ProcessContext c) {
+    // Increment the counter
+    count++;
+    c.output(null);
+  }
+}
+```
+
+In this example, the NotThreadSafeFn function has a shared counter variable count. Each time processElement is called, it increments count by one. However, since this function is not thread-safe, it can lead to race conditions if multiple threads access the count variable at the same time.
+
+If this function is used in a Beam pipeline with parallelism greater than one, multiple threads on different worker machines may try to access the count variable concurrently, leading to unpredictable and incorrect results. To make this function thread-safe, you would need to add synchronization, such as using the synchronized keyword or other thread-safe mechanisms, to ensure that only one thread can access the count variable at a time.
+
+Additionally, note that static members in your function object are not passed to worker instances. This means that if you rely on static variables or methods in your function, those will not be available on worker nodes and your function may behave differently than expected.
+ ```java
+ import org.apache.beam.sdk.transforms.SerializableFunction;
+import java.util.List;
+
+public class SumFunction implements SerializableFunction<List<Integer>, Integer> {
+  private int total = 0;
+
+  @Override
+  public Integer apply(List<Integer> input) {
+    for (int i : input) {
+      total += i;
+    }
+    return total;
+  }
+}
+ ```
+
+
+ In this example, the total variable is static, meaning that it belongs to the class rather than any specific instance of the class. This can lead to problems when executing the function in a distributed environment like Beam, because each worker node will have its own copy of the class, and therefore its own copy of the total variable.
+
+ To make the code thread-safe and improve performance, you should use a counter that is safe to use across multiple threads, such as AtomicInteger, and avoid using non-final static variables in your function. Here is an example of how the code could be rewritten:
+
+ ```java
+ import org.apache.beam.sdk.transforms.DoFn;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class ThreadSafeFn extends DoFn<Integer, Void> {
+
+  // Shared counter variable
+  private AtomicInteger count = new AtomicInteger(0);
+
+  @ProcessElement
+  public void processElement(ProcessContext c) {
+    // Increment the counter
+    count.incrementAndGet();
+    c.output(null);
+  }
+}
+ ```
+
+
+In this example, we use AtomicInteger instead of int for the counter variable. AtomicInteger is a thread-safe class that provides atomic operations, so it can be safely used across multiple threads. We also removed the static modifier from the counter variable, as static variables are not recommended for use in Beam functions.
+
+By making these changes, the code should be thread-safe and have better performance when used in a multi-threaded environment.
+
+This can cause unexpected behavior, because the sum calculated on each worker will be added to its own copy of total, rather than being accumulated into a single total across all workers.
+
+To avoid this problem, it's best to avoid using static variables in your Beam functions. Instead, you should pass any necessary state as arguments to your function, or use instance variables that are serialized along with the function object.
+
+In summary, it is important to ensure that any functions used in Beam transformations and analysis are thread-compatible to avoid issues with multiple threads accessing the same function instance simultaneously. If you need to create your own threads in your user code, you must ensure proper synchronization to avoid thread-safety issues. Finally, note that static members in your function object are not passed to worker instances, so you should avoid relying on static variables or methods in your functions.
+
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
