@@ -713,5 +713,34 @@ To avoid this problem, it's best to avoid using static variables in your Beam fu
 
 In summary, it is important to ensure that any functions used in Beam transformations and analysis are thread-compatible to avoid issues with multiple threads accessing the same function instance simultaneously. If you need to create your own threads in your user code, you must ensure proper synchronization to avoid thread-safety issues. Finally, note that static members in your function object are not passed to worker instances, so you should avoid relying on static variables or methods in your functions.
 
+
+## side inputs
+
+In Apache Beam, a ParDo transform can have additional inputs called "side inputs" that can be accessed by the DoFn while processing the elements of the main input PCollection. These side inputs are created by using a different method than the usual apply method of the transform.
+
+The side input provides additional data that can be read by the DoFn during processing of each element of the main input PCollection. The values of side inputs can be determined at runtime and may depend on the main input data or another branch of the pipeline.
+
+```java
+PCollection<Integer> mainInput = ...;
+PCollection<String> sideInput = ...;
+
+PCollection<Integer> output = mainInput.apply(ParDo.withSideInputs(sideInput)
+    .of(new DoFn<Integer, Integer>() {
+        @ProcessElement
+        public void processElement(ProcessContext c) {
+            // Access the side input values
+            Iterable<String> sideInputValues = c.sideInput(sideInput);
+            
+            // Process the main input element with the side input values
+            Integer inputValue = c.element();
+            // ...
+            
+            // Emit the output
+            c.output(outputValue);
+        }
+    }));
+```
+
+In this example, the ParDo transform has a main input PCollection of integers and a side input PCollection of strings. The DoFn accesses the side input values by calling the c.sideInput(sideInput) method inside the @ProcessElement method. The side input values are returned as an Iterable of values. The DoFn then processes each element of the main input PCollection with the side input values and outputs the results to the output PCollection.
 references: 
 https://beam.apache.org/documentation/programming-guide/#applying-transforms
