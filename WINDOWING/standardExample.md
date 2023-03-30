@@ -1,4 +1,4 @@
-Sure! Here's a simple example to illustrate windowing:
+# Simple Example
 
 Suppose you have a stream of sensor readings coming in every second. Each sensor reading has a timestamp indicating when the reading was taken. You want to calculate the average of the last 10 readings for each sensor and output the result.
 
